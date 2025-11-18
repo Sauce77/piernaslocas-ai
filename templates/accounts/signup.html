@@ -1,0 +1,18 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<div class="container">
+    <h2>Crear una Nueva Cuenta</h2>
+    <form method="post">
+        {% csrf_token %}
+        
+        <h3>Datos de Usuario</h3>
+        {{ user_form.as_p }} 
+        
+        <h3>Datos de Perfil</h3>
+        {{ contacto_form.as_p }} 
+
+        <button type="submit" class="btn btn-success">Registrarse</button>
+    </form>
+</div>
+{% endblock %}

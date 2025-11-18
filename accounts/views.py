@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, HttpResponse
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
-from .forms import LoginForm
+from .forms import LoginForm, SignupForm, ContactoForm
 
 def home(request):
     return HttpResponse("Mia Khalifa")
@@ -30,11 +30,44 @@ def login_view(request):
                 # Si la autenticación falla (credenciales incorrectas)
                 messages.error(request, 'Nombre de usuario o contraseña incorrectos.')
                 # Mantenemos el formulario en la página con el error
-                return render(request, 'login.html', {'form': form})
+                return render(request, 'accounts/login.html', {'form': form})
     else:
         # Petición GET: Mostramos un formulario vacío
         form = LoginForm()
         
     return render(request, 'accounts/login.html', {'form': form})
 
-# Create your views here.
+
+def signup_view(request):
+
+    user_form = SignupForm()
+    contacto_form = ContactoForm()
+
+    if request.method == 'POST':
+
+        # ingresamos las respuestas al form de usuario
+        user_form = SignupForm(request.POST)
+
+        # ingresamos las respuestas al form de contacto
+        contacto_form = ContactoForm(request.POST)
+
+        # si la informacion de usuario y contacto es valida
+        if user_form.is_valid() and contacto_form.is_valid():
+
+            # guardamos la informacion del usuario
+            user = user_form.save()
+
+            # creamos una instancia del contacto
+            contacto = contacto_form.save(commit=False)
+            contacto.user = user
+            contacto.save()
+
+            messages.success(request, f'Cuenta creada exitosamente para {user.username}. ¡Ahora puedes iniciar sesión!')
+            return redirect('login')
+
+    contexto = {
+        "user_form": user_form,
+        "contacto_form": contacto_form,
+    }
+
+    return render(request, "accounts/signup.html", contexto)
