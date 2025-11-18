@@ -18,7 +18,7 @@ class Contacto(models.Model):
     sexo = models.CharField(max_length=1, choices=OPCIONES_SEXO, null=False, blank=False)
     fecha_nacimiento = models.DateField(null=False, blank=False)
     contacto_emergencia = models.CharField(max_length=10, null=False, blank=False)
-    perfil =  models.CharField(max_length=1, choices=OPCIONES_PERFIL, null=False, blank=False)
+    perfil =  models.CharField(max_length=1, choices=OPCIONES_PERFIL, null=False, blank=False, default='U')
     cedula_profesional = models.CharField(max_length=10, null=True, blank=True)
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)

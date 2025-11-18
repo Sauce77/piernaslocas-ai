@@ -7,11 +7,11 @@ class LoginForm(forms.Form):
     username = forms.CharField(
         label='Nombre de Usuario',
         max_length=150,
-        widget=forms.TextInput(attrs={'class': 'form-control'})
+        widget=forms.TextInput(attrs={'class': ' form-control w-100'})
     )
     password = forms.CharField(
         label='Contraseña',
-        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+        widget=forms.PasswordInput(attrs={'class': 'form-control w-100'})
     )
 
 class SignupForm(UserCreationForm):
@@ -20,7 +20,15 @@ class SignupForm(UserCreationForm):
         fields = ('username', 'email', 'first_name', 'last_name')
 
 
+
 class ContactoForm(forms.ModelForm):
     class Meta:
         model = Contacto
         exclude = ['user', 'perfil', 'cedula_profesional']
+
+        widgets = {
+            'fecha_nacimiento': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+        }

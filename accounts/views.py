@@ -40,9 +40,6 @@ def login_view(request):
 
 def signup_view(request):
 
-    user_form = SignupForm()
-    contacto_form = ContactoForm()
-
     if request.method == 'POST':
 
         # ingresamos las respuestas al form de usuario
@@ -64,6 +61,18 @@ def signup_view(request):
 
             messages.success(request, f'Cuenta creada exitosamente para {user.username}. ¡Ahora puedes iniciar sesión!')
             return redirect('login')
+    
+    else:
+
+        user_form = SignupForm()
+        contacto_form = ContactoForm()
+
+        # Iterar sobre los campos para añadir la clase 'form-control'
+        for field in user_form.fields.values():
+            field.widget.attrs['class'] = 'form-control'
+            
+        for field in contacto_form.fields.values():
+            field.widget.attrs['class'] = 'form-control'
 
     contexto = {
         "user_form": user_form,
