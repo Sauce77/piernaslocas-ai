@@ -4,7 +4,7 @@ from django.contrib import messages
 from .forms import LoginForm, SignupForm, ContactoForm
 
 def home(request):
-    return HttpResponse("Mia Khalifa")
+    return render(request, "base.html")
 
 def login_view(request):
     
@@ -25,7 +25,7 @@ def login_view(request):
                 login(request, user)
                 # Opcionalmente, mostrar un mensaje de éxito
                 messages.success(request, f'¡Bienvenido/a de nuevo, {username}!')
-                return redirect('home')
+                return redirect('accounts:home')
             else:
                 # Si la autenticación falla (credenciales incorrectas)
                 messages.error(request, 'Nombre de usuario o contraseña incorrectos.')
@@ -60,7 +60,7 @@ def signup_view(request):
             contacto.save()
 
             messages.success(request, f'Cuenta creada exitosamente para {user.username}. ¡Ahora puedes iniciar sesión!')
-            return redirect('login')
+            return redirect('accounts:login')
     
     else:
 
