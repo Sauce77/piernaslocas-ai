@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, HttpResponse
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .forms import LoginForm, SignupForm, ContactoForm
 
@@ -80,3 +80,7 @@ def signup_view(request):
     }
 
     return render(request, "accounts/signup.html", contexto)
+
+def logout_view(request):
+    logout(request)
+    return redirect('accounts:home')
