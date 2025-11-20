@@ -1,0 +1,13 @@
+:root {
+    --primary-color : #0077b6;
+    --secondary-color: #ff6b35;
+    --third-color: #c9ecff;
+    --accent: #82d4ff;
+    --text: #000000;
+    --background: #ffffff;
+}
+
+.block-primary {
+    background-color: var(--primary-color);
+    color: var(--background);
+}

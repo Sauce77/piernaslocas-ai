@@ -9,7 +9,7 @@ def home(request):
 def login_view(request):
     
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('accounts:home')
         
     if request.method == 'POST':
         form = LoginForm(request.POST)
