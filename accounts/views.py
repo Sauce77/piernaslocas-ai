@@ -4,7 +4,7 @@ from django.contrib import messages
 from .forms import LoginForm, SignupForm, ContactoForm
 
 def home(request):
-    return render(request, "base.html")
+    return render(request, "accounts/index.html")
 
 def login_view(request):
     

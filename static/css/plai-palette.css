@@ -7,7 +7,22 @@
     --background: #ffffff;
 }
 
-.block-primary {
+.block-primario {
     background-color: var(--primary-color);
     color: var(--background);
 }
+
+.boton-primario{
+    background-color: var(--primary-color);
+    color: var(--background);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.boton-secundario {
+    background-color: var(--secondary-color);
+    color: var(--background);
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
