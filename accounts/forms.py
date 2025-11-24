@@ -24,7 +24,7 @@ class SignupForm(UserCreationForm):
 class ContactoForm(forms.ModelForm):
     class Meta:
         model = Contacto
-        exclude = ['user', 'perfil', 'cedula_profesional']
+        exclude = ['user', 'cedula_profesional']
 
         widgets = {
             'fecha_nacimiento': forms.DateInput(attrs={

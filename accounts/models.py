@@ -21,7 +21,7 @@ class Contacto(models.Model):
     perfil =  models.CharField(max_length=1, choices=OPCIONES_PERFIL, null=False, blank=False, default='U')
     cedula_profesional = models.CharField(max_length=10, null=True, blank=True)
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.user.last_name}, {self.user.first_name}"

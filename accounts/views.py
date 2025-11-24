@@ -1,7 +1,10 @@
-from django.shortcuts import render, redirect, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponse
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from .forms import LoginForm, SignupForm, ContactoForm
+import datetime
 
 def home(request):
     return render(request, "accounts/index.html")
@@ -81,6 +84,34 @@ def signup_view(request):
 
     return render(request, "accounts/signup.html", contexto)
 
+@login_required
 def logout_view(request):
     logout(request)
     return redirect('accounts:home')
+
+@login_required
+def profile_view(request, username):
+    """
+        Muestra la informacion del usuario seleccionado.
+    """
+
+    # obtenemos el objeto usuario
+    usuario = get_object_or_404(User, username=username)
+    edad = None
+
+    if hasattr(usuario, "contacto"):
+        # calculamos la edad a partir de la fecha nacimiento
+        hoy = datetime.datetime.today()
+        fecha_nacimiento = usuario.contacto.fecha_nacimiento
+        edad = hoy.year - fecha_nacimiento.year
+
+        if (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day):
+            edad -= 1
+
+
+    contexto = {
+        "usuario": usuario,
+        "edad": edad,
+    }
+
+    return render(request, "accounts/perfil.html", contexto)
