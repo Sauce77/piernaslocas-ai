@@ -3,8 +3,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import LoginForm, SignupForm, ContactoForm
+from .forms import LoginForm, SignupForm, ContactoForm, ContactoEditForm, UserEditForm
 import datetime
+
+from .models import Contacto
 
 def home(request):
     return render(request, "accounts/index.html")
@@ -115,3 +117,35 @@ def profile_view(request, username):
     }
 
     return render(request, "accounts/perfil.html", contexto)
+
+@login_required
+def edit_view(request):
+
+    try:
+        contacto_instance = request.user.contacto
+    except Contacto.DoesNotExist:
+        # Si no existe, crea uno nuevo (esto es crucial si usaste signals)
+        contacto_instance = Contacto.objects.create(user=request.user)
+    
+    # Inicializa los formularios con los datos existentes
+    if request.method == 'POST':
+        # 1. Bindea los formularios con los datos del POST y las instancias actuales
+        user_form = UserEditForm(request.POST, instance=request.user)
+        contacto_form = ContactoEditForm(request.POST, instance=contacto_instance)
+
+        if user_form.is_valid() and contacto_form.is_valid():
+            # 2. Guarda ambos formularios
+            user_form.save()
+            contacto_form.save()
+            # 3. Redirige a la página de perfil
+            return redirect('accounts:profile', username=request.user.username) # Cambia 'perfil_url_name' por la URL de tu perfil
+    else:
+        # En una solicitud GET, inicializa los formularios con los datos existentes
+        user_form = UserEditForm(instance=request.user)
+        contacto_form = ContactoEditForm(instance=contacto_instance)
+
+    context = {
+        'user_form': user_form,
+        'contacto_form': contacto_form,
+    }
+    return render(request, 'accounts/editar.html', context)

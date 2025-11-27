@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{% static 'css/plai-palette.css' %}">
 {% endblock%}
 
-{% block title %}PLAI{% endblock %}
+{% block title %}Perfil{% endblock %}
 
 {% block content %}
 
@@ -53,7 +53,7 @@
                         <p><b>Fecha de Nacimiento: </b>{{ usuario.contacto.fecha_nacimiento }} [<i>{{ edad }} año(s)</i>]</p>
                         <p class="card-text"><b>Contacto de emergencia:</b> {{ usuario.contacto.contacto_emergencia }}</p>
 
-                        <a class="btn btn-sm fs-6 px-3 boton-secundario" href="{% url 'accounts:profile' username=usuario.username %}">Editar</a>
+                        <a class="btn btn-sm fs-6 px-3 boton-secundario" href="{% url 'accounts:edit' %}">Editar</a>
 
                     {% endif %}
                 
