@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BatchPoseSerializer
 
+from django.shortcuts import render
+
 class BatchPoseAPIView(APIView):
     """
     Endpoint para recibir lotes de datos de pose del cliente OpenCV.
@@ -34,3 +36,8 @@ class BatchPoseAPIView(APIView):
         
         # 3. Si la validación falla, devolver errores
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+def capturar_poses(request):
+
+    return render(request, "poses/capturar_poses.html")
