@@ -14,15 +14,8 @@ class Ejercicio(models.Model):
 
 class Historial(models.Model):
 
-    OPCIONES_ESTADO = [
-        ('T', 'Terminado'),
-        ('P', 'Pendiente'),
-        ('C', 'Cancelado'),
-    ]
-
     folio = models.CharField(max_length=100, null=False, blank=False)
     fecha_inicio = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(max_length=1, choices=OPCIONES_ESTADO, null=False, blank=False)
 
     terapeuta = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='historial_terapeuta')
     paciente = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='historial_paciente')
@@ -32,8 +25,15 @@ class Historial(models.Model):
     
 class Rutina(models.Model):
 
+    OPCIONES_ESTADO = [
+        ('T', 'Terminado'),
+        ('P', 'Pendiente'),
+        ('C', 'Cancelado'),
+    ]
+
     nombre = models.CharField(max_length=100, null=False, blank=False)
     descripcion = models.TextField(null=True, blank=True)
+    estado = models.CharField(max_length=1, choices=OPCIONES_ESTADO, null=False, blank=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_limite = models.DateTimeField(null=True, blank=True)
     fecha_completado = models.DateTimeField(null=True, blank=True)

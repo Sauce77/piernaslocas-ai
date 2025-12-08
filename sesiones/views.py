@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User
 
-from .models import Historial
+from .models import Historial, Rutina
 # Create your views here.
 
 def mostrar_historial(request, username):
@@ -9,12 +9,19 @@ def mostrar_historial(request, username):
     # obtenemos el usuario
     usuario = get_object_or_404(User, username=username)
 
-    # obtenemos el historial
-    historial = Historial.objects.get(paciente=usuario)
+    try:
+        # obtenemos el historial
+        historial = Historial.objects.get(paciente=usuario)
+        # obtenemos las rutinas
+        rutinas = Rutina.objects.filter(historial=historial)
+    except Historial.DoesNotExist:
+        historial = None
+        rutinas = None
 
     contexto = {
         "usuario": usuario,
         "historial": historial,
+        "rutinas": rutinas,
     }
 
     return render(request, "sesiones/historial.html", contexto)
