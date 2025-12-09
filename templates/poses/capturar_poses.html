@@ -34,15 +34,31 @@
 {% block content %}
 
     <div class="container my-5 text-center">
-        <h1 class="mb-4">Detección de Poses (MoveNet) con Bootstrap 5</h1>
+        <h1 class="mb-4">Ejercicio: {{ ejercicio.nombre }}</h1>
         
         <div id="loading" class="alert alert-info">Cargando modelo y cámara...</div>
 
-        <div id="main-container" class="shadow-lg mx-auto" style="width: 640px; height: 480px;">
-            <video id="video" playsinline width="640" height="480"></video>
-            <canvas id="canvas" width="640" height="480"></canvas>
+        <div class="d-flex justify-content-between">
+            <div id="main-container" class="shadow-lg mx-auto" style="width: 640px; height: 480px;">
+                <video id="video" playsinline width="640" height="480"></video>
+                <canvas id="canvas" width="640" height="480"></canvas>
+            </div>
+
+            <div>
+                <h2>{{ ejercicio.nombre }}</h2>
+                <p>{{ ejercicio.descripcion }}</p>
+            </div>
         </div>
+
+        <div class="d-flex flex-columns">
+            <a href="{% url 'sesiones:rutinas' %}" class="btn btn-danger">Cancelar</a>
+        </div>
+        
     </div>
+
+    <script type="application/json">
+        {{ ejercicio.data|json_script:"targets-json" }}
+    </script>
 
     <script>
         // --- COMIENZA CÓDIGO JAVASCRIPT ---
@@ -57,15 +73,31 @@
         const LOADING_ELEM = document.getElementById('loading');
 
         // 2. Definición de OBJETIVOS (Targets) para Rodillas y Tobillos
-        // Las coordenadas (x, y) están pensadas para una resolución de 640x480
-        const TARGETS = [
-            // Rodillas (Knees) - Un poco más arriba
-            { x: 440, y: 350, keypointIndex: 13, label: "Rodilla Izq", hit: false },
-            { x: 200, y: 350, keypointIndex: 14, label: "Rodilla Der", hit: false },
-            // Tobillos (Ankles) - Cerca del fondo
-            { x: 460, y: 440, keypointIndex: 15, label: "Tobillo Izq", hit: false },
-            { x: 180, y: 440, keypointIndex: 16, label: "Tobillo Der", hit: false }
-        ];
+        // Leemos el JSON inyectado por Django mediante json_script
+        const jsonScriptNode = document.getElementById('targets-json');
+        
+        let TARGETS = []; // Inicializamos vacío
+
+        if (jsonScriptNode) {
+            try {
+                const parsedData = JSON.parse(jsonScriptNode.textContent);
+                
+                // Procesamos los datos para asegurar que tengan la propiedad 'hit'
+                TARGETS = parsedData.map(t => ({
+                    x: t.x,
+                    y: t.y,
+                    keypointIndex: t.keypointIndex,
+                    label: t.label,
+                    hit: false // Estado interno necesario para la lógica de dibujo
+                }));
+                
+                console.log("Objetivos cargados vía JSON:", TARGETS);
+            } catch (error) {
+                console.error("Error parseando el JSON de objetivos:", error);
+            }
+        } else {
+            console.warn("No se encontró el elemento JSON. Usando array vacío.");
+        }
 
         /**
          * Configurar y Cargar el Detector MoveNet

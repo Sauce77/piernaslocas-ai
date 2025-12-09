@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import BatchPoseSerializer
 
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+
+from sesiones.models import Ejercicio
 
 class BatchPoseAPIView(APIView):
     """
@@ -38,6 +40,12 @@ class BatchPoseAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-def capturar_poses(request):
+def capturar_poses(request, id_ejercicio):
 
-    return render(request, "poses/capturar_poses.html")
+    ejercicio = get_object_or_404(Ejercicio,pk=id_ejercicio)
+
+    contexto = {
+        "ejercicio": ejercicio
+    }
+
+    return render(request, "poses/capturar_poses.html", contexto)
