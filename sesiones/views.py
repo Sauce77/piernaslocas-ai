@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
-from .models import Historial, Rutina
+from .models import Historial, Rutina, Ejercicio
 # Create your views here.
 
 @login_required
@@ -46,3 +46,16 @@ def mostar_rutinas(request):
     }
 
     return render(request, "sesiones/rutinas.html", contexto)
+
+@login_required
+def mostrar_ejercicios(request, id_rutina):
+
+    rutina = get_object_or_404(Rutina, pk=id_rutina)
+
+    ejercicios = Ejercicio.objects.filter(rutina=rutina)
+
+    contexto = {
+        "ejercicios": ejercicios
+    }
+
+    return render(request, "sesiones/ejercicios.html", contexto)
