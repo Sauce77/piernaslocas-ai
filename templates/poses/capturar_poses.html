@@ -47,7 +47,7 @@
     <script>
         // --- COMIENZA CÓDIGO JAVASCRIPT ---
 
-        // Variables globales
+        // 1. Variables globales
         let detector;
         let video;
         let canvas;
@@ -56,9 +56,19 @@
         const VIDEO_HEIGHT = 480;
         const LOADING_ELEM = document.getElementById('loading');
 
+        // 2. Definición de OBJETIVOS (Targets) para Rodillas y Tobillos
+        // Las coordenadas (x, y) están pensadas para una resolución de 640x480
+        const TARGETS = [
+            // Rodillas (Knees) - Un poco más arriba
+            { x: 440, y: 350, keypointIndex: 13, label: "Rodilla Izq", hit: false },
+            { x: 200, y: 350, keypointIndex: 14, label: "Rodilla Der", hit: false },
+            // Tobillos (Ankles) - Cerca del fondo
+            { x: 460, y: 440, keypointIndex: 15, label: "Tobillo Izq", hit: false },
+            { x: 180, y: 440, keypointIndex: 16, label: "Tobillo Der", hit: false }
+        ];
 
         /**
-         * 1. Configurar y Cargar el Detector MoveNet
+         * Configurar y Cargar el Detector MoveNet
          */
         async function setupDetector() {
             const model = poseDetection.SupportedModels.MoveNet;
@@ -69,12 +79,15 @@
 
             detector = await poseDetection.createDetector(model, detectorConfig);
             console.log("Detector de poses MoveNet cargado.");
-            LOADING_ELEM.className = 'alert alert-warning';
-            LOADING_ELEM.innerText = 'Cámara lista, iniciando detección...';
+            
+            if(LOADING_ELEM) {
+                LOADING_ELEM.className = 'alert alert-warning';
+                LOADING_ELEM.innerText = 'Cámara lista. ¡Alinea tus rodillas y tobillos con los círculos!';
+            }
         }
 
         /**
-         * 2. Configurar y Abrir la Cámara
+         * Configurar y Abrir la Cámara
          */
         async function setupCamera() {
             video = document.getElementById('video');
@@ -99,7 +112,7 @@
         }
 
         /**
-         * 3. Bucle Principal de Detección (Actualización continua)
+         * Bucle Principal de Detección
          */
         async function poseEstimationLoop() {
             if (!detector || !video.readyState) {
@@ -107,23 +120,93 @@
                 return;
             }
 
+            // 1. Estimar pose
             const poses = await detector.estimatePoses(video);
+            const mainPose = (poses && poses.length > 0) ? poses[0] : null;
+
+            // 2. Limpiar canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (poses && poses.length > 0) {
-                drawResult(poses[0], ctx);
+            // 3. Dibujar Objetivos (Targets)
+            // Se dibujan PRIMERO para que queden "detrás" del esqueleto del usuario
+            drawAndCheckTargets(mainPose, ctx);
+
+            // 4. Dibujar Esqueleto del usuario
+            if (mainPose) {
+                drawResult(mainPose, ctx);
             }
 
+            // 5. Repetir
             requestAnimationFrame(poseEstimationLoop);
         }
 
         /**
-         * 4. Función auxiliar para dibujar la pose (Usando lista manual estable)
+         * Función para Dibujar y Verificar Objetivos (Knees & Ankles)
+         */
+        function drawAndCheckTargets(pose, ctx) {
+            const HIT_THRESHOLD = 60; // Tolerancia en píxeles (Radio de éxito)
+            let hitCount = 0;
+
+            TARGETS.forEach(target => {
+                let isHit = false;
+
+                // Verificar colisión si hay pose
+                if (pose) {
+                    const userPart = pose.keypoints[target.keypointIndex];
+                    // Solo verificamos si la confianza de la detección es buena (> 0.3)
+                    if (userPart && userPart.score > 0.3) {
+                        const dist = Math.hypot(userPart.x - target.x, userPart.y - target.y);
+                        if (dist < HIT_THRESHOLD) {
+                            isHit = true;
+                            hitCount++;
+                        }
+                    }
+                }
+                
+                target.hit = isHit;
+
+                // --- Dibujo Visual del Objetivo ---
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 40, 0, 2 * Math.PI); // Círculo objetivo
+                
+                if (isHit) {
+                    // ÉXITO: Relleno Verde brillante
+                    ctx.fillStyle = 'rgba(50, 255, 50, 0.5)';
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 4;
+                } else {
+                    // ESPERA: Relleno Azul transparente con borde punteado
+                    ctx.fillStyle = 'rgba(0, 150, 255, 0.2)';
+                    ctx.strokeStyle = 'cyan';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([10, 5]); 
+                }
+                
+                ctx.fill();
+                ctx.stroke();
+                ctx.setLineDash([]); // Resetear líneas punteadas
+
+                // --- Dibujar Texto (Corrigiendo el efecto espejo) ---
+                ctx.save();
+                ctx.translate(target.x, target.y);
+                ctx.scale(-1, 1); // Invertir X localmente para que el texto se lea bien
+                
+                ctx.fillStyle = 'white';
+                ctx.font = "bold 14px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(target.label, 0, 5); // Texto en el centro del círculo
+                
+                ctx.restore();
+            });
+        }
+
+        /**
+         * Función para dibujar el Esqueleto (Manual y Estable)
          */
         function drawResult(pose, ctx) {
             const minScore = 0.3; 
             
-            // Lista de adyacencia manual para MoveNet (Estable y compatible)
+            // Lista de adyacencia manual (MoveNet Lightning)
             const ADJACENCY_LIST = [
                 [0, 1], [0, 2], [1, 3], [2, 4], 
                 [0, 5], [0, 6], [5, 7], [7, 9], 
@@ -132,7 +215,9 @@
                 [12, 14], [14, 16]
             ];
 
-            // Dibujar el "esqueleto" (conexiones)
+            // 1. Dibujar líneas del cuerpo
+            ctx.strokeStyle = 'lime';
+            ctx.lineWidth = 3;
             ADJACENCY_LIST.forEach(([i, j]) => {
                 const kp1 = pose.keypoints[i];
                 const kp2 = pose.keypoints[j];
@@ -141,53 +226,65 @@
                     ctx.beginPath();
                     ctx.moveTo(kp1.x, kp1.y);
                     ctx.lineTo(kp2.x, kp2.y);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'lime';
                     ctx.stroke();
                 }
             });
             
-            // Dibujar puntos clave (Keypoints)
-            for (const keypoint of pose.keypoints) {
+            // 2. Dibujar puntos clave (Resaltando rodillas y tobillos)
+            pose.keypoints.forEach((keypoint, i) => {
                 if (keypoint.score > minScore) { 
                     const { x, y } = keypoint;
                     ctx.beginPath();
-                    ctx.arc(x, y, 5, 0, 2 * Math.PI); 
-                    ctx.fillStyle = 'red';
+
+                    // Índices relevantes: 13,14 (Rodillas) - 15,16 (Tobillos)
+                    if (i >= 13 && i <= 16) {
+                        // Puntos de interés: Amarillo y grande
+                        ctx.arc(x, y, 12, 0, 2 * Math.PI); 
+                        ctx.fillStyle = '#FFD700'; // Gold
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    } else {
+                        // Resto del cuerpo: Rojo normal
+                        ctx.arc(x, y, 6, 0, 2 * Math.PI);  
+                        ctx.fillStyle = 'red';
+                    }
                     ctx.fill();
                 }
-            }
+            });
         }
 
         /**
-         * 5. Inicialización principal
+         * Inicialización
          */
         async function init() {
             try {
-                // Configurar la cámara y los elementos de visualización
                 await setupCamera();
                 video.play();
 
                 canvas = document.getElementById('canvas');
                 ctx = canvas.getContext('2d');
-                // Ya definimos los atributos width/height en el HTML
+                
+                // Ajuste explícito de dimensiones internas del canvas
+                canvas.width = VIDEO_WIDTH;
+                canvas.height = VIDEO_HEIGHT;
 
-                // Cargar el modelo TF.js
                 await setupDetector();
 
-                // Iniciar el bucle de detección en tiempo real
                 LOADING_ELEM.style.display = 'none';
                 poseEstimationLoop();
 
             } catch (error) {
-                console.error("Error al inicializar la aplicación:", error);
-                LOADING_ELEM.className = 'alert alert-danger';
-                LOADING_ELEM.innerText = 'Error: No se pudo acceder a la cámara o cargar el modelo. Verifica los permisos de la cámara.';
+                console.error("Error:", error);
+                if(LOADING_ELEM) {
+                    LOADING_ELEM.className = 'alert alert-danger';
+                    LOADING_ELEM.innerText = 'Error: ' + error.message;
+                }
             }
         }
 
         init();
-        
+
         // --- FINALIZA CÓDIGO JAVASCRIPT ---
     </script>
 
