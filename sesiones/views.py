@@ -55,7 +55,8 @@ def mostrar_ejercicios(request, id_rutina):
     ejercicios = Ejercicio.objects.filter(rutina=rutina)
 
     contexto = {
-        "ejercicios": ejercicios
+        "ejercicios": ejercicios,
+        "rutina": rutina,
     }
 
     return render(request, "sesiones/ejercicios.html", contexto)

@@ -10,19 +10,56 @@
 
 {% block content%}
 
+    <h1 class="my-2">Ejercicios de Rutina 1</h1>
+
     <div class="row row-cols-1 row-cols-md-3 g-4">
-        {% for ejercicio in ejercicios %}
             <div class="col">
                 <div class="card h-100 text-center">
-                    <img src="{% static 'img/accounts/profile/example.gif' %}" alt="profile_photo" style="width: 100%; height: 20rem;">
+                    <img src="{% static 'img/sesiones/ejercicio_1.png' %}" alt="profile_photo" style="width: 100%; height: 15rem;">
                     <div class="card-body">
-                        <h5 class="card-title">{{ ejercicio.nombre }}</h5>
-                        <p class="card-text">{{ ejercicio.descripcion }}</p>
+                        <h5 class="card-title">Estiramiento de Femorales</h5>
+                        <p class="card-text">
+                            Coloca ambos pies a altura de los hombros, retrae la cadera levemente. Con la espalda recta, eleve y desciende de
+                            forma pausada el tronco.
+                        </p>
 
-                        <a href="{% url 'poses:capturar' id_ejercicio=ejercicio.id %}" class="btn boton-primario px-5">Iniciar</a>
                     </div>
+
+                    <a href="{% url 'poses:capturar_ejercicio_1' %}" class="btn boton-primario px-5 m-3">Iniciar</a>
                 </div>
             </div>
-        {% endfor %}
+
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <img src="{% static 'img/sesiones/ejercicio_2.png' %}" alt="profile_photo" style="width: 100%; height: 15rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Estiramiento de Cuadriceps</h5>
+                        <p class="card-text">
+                            Tome su tobillo de con su mano reciproca y posicionela a altura de su cadera, mantenga el equilibrio y conserve
+                            la pose durante unos segundos. Inhale y exhale de forma pausada durante el ejercicio.
+                        </p>
+
+                        
+                    </div>
+
+                    <a href="{% url 'poses:capturar_ejercicio_2' %}" class="btn boton-primario px-5 m-3">Iniciar</a>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <img src="{% static 'img/sesiones/ejercicio_3.png' %}" alt="profile_photo" style="width: 100%; height: 15rem;">
+                    <div class="card-body">
+                        <h5 class="card-title">Estiramiento de pantorillas</h5>
+                        <p class="card-text">
+                            Permanezca erguido sobre una superficie plana. Levante las puntas de sus pies de forma pausada, mantenga
+                            la posicion un par de segundos cuando las puntas de sus pies esten en lo mas alto.
+                        </p>
+
+                    </div>
+
+                    <a href="{% url 'poses:capturar_ejercicio_3' %}" class="btn boton-primario px-5 m-3">Iniciar</a>
+                </div>
+            </div>
     </div>
 {% endblock %}

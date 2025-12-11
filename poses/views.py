@@ -40,12 +40,14 @@ class BatchPoseAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-def capturar_poses(request, id_ejercicio):
+def capturar_ejercicio_1(request):
 
-    ejercicio = get_object_or_404(Ejercicio,pk=id_ejercicio)
+    return render(request, "poses/capturar_ejercicio_1.html")
 
-    contexto = {
-        "ejercicio": ejercicio
-    }
+def capturar_ejercicio_2(request):
 
-    return render(request, "poses/capturar_poses.html", contexto)
+    return render(request, "poses/capturar_ejercicio_2.html")
+
+def capturar_ejercicio_3(request):
+
+    return render(request, "poses/capturar_ejercicio_3.html")

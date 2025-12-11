@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/plai-palette.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+    <style>
+        /* Contenedor principal para posicionamiento relativo */
+        #main-container {
+            position: relative;
+            /* Usamos la clase Bootstrap 'shadow-lg' para el borde */
+        }
+        /* El canvas se superpone al video */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        /* Aplica el efecto espejo CSS tanto al video como al canvas */
+        #video, #canvas {
+            transform: scaleX(-1);
+        }
+        #video {
+            display: block; 
+            /* Para que el video no interfiera con el canvas */
+        }
+    </style>
+{% endblock %}
+
+{% block title %}piernaslocas{% endblock %}
+
+{% block content %}
+
+    <div class="container my-5 text-center">
+        <h1 class="mb-4">Estiramiento de Cuadriceps</h1>
+        
+        <div id="loading" class="alert alert-info">Cargando modelo y cámara...</div>
+
+        <div class="d-flex justify-content-between gap-2">
+            <div id="main-container" class="shadow-lg mx-auto" style="width: 640px; height: 480px;">
+                <video id="video" playsinline width="640" height="480"></video>
+                <canvas id="canvas" width="640" height="480"></canvas>
+            </div>
+
+            <div>
+                <img src="{% static 'img/sesiones/ejercicio_2.png' %}" alt="profile_photo" style="width: 100%; height: 20rem;">
+                <p>Tome su tobillo de con su mano reciproca y posicionela a altura de su cadera, mantenga el equilibrio y conserve la pose durante unos segundos. 
+                    Inhale y exhale de forma pausada durante el ejercicio.</p>
+            </div>
+        </div>
+
+        <div class="d-flex flex-columns m-2">
+            <a href="{% url 'sesiones:ejercicios' id_rutina=1 %}" class="btn btn-danger">Cancelar</a>
+        </div>
+        
+    </div>
+
+    <script>
+        // 1. Variables globales
+let detector;
+let video;
+let canvas;
+let ctx;
+const VIDEO_WIDTH = 640;
+const VIDEO_HEIGHT = 480;
+const LOADING_ELEM = document.getElementById('loading');
+
+// ★ NUEVO: Variables de Estado de la Rutina
+let currentStepIndex = 0; // En qué paso de la rutina estamos
+let poseHoldCounter = 0;  // Contador de frames para mantener la pose
+const FRAMES_TO_HOLD = 40; // Cuántos frames debe mantener la pose antes de cambiar (aprox 0.7 seg)
+
+// ★ NUEVO: Definición de la RUTINA (Varios pasos)
+const ROUTINE_STEPS = [
+    // PASO 0: Posición "Sentadilla" (Rodillas abajo)
+    [
+        { x: 410, y: 380, keypointIndex: 13, label: "Rodilla Izq", hit: false },
+        { x: 460, y: 270, keypointIndex: 15, label: "Tobillo Izq", hit: false },
+    ],
+    // PASO 1: Posición "De Pie" (Rodillas arriba)
+    [
+        { x: 410, y: 380, keypointIndex: 14, label: "Rodilla Der", hit: false },
+        // Los tobillos se mantienen abajo
+        { x: 360, y: 270, keypointIndex: 15, label: "Tobillo Izq", hit: false },
+    ]
+];
+
+// Cargamos los objetivos del paso actual
+let currentTargets = JSON.parse(JSON.stringify(ROUTINE_STEPS[currentStepIndex]));
+
+
+/**
+ * Configurar y Cargar el Detector MoveNet
+ */
+async function setupDetector() {
+    const model = poseDetection.SupportedModels.MoveNet;
+    const detectorConfig = {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        enableSmoothing: true
+    };
+
+    detector = await poseDetection.createDetector(model, detectorConfig);
+    console.log("Detector de poses MoveNet cargado.");
+    
+    if(LOADING_ELEM) {
+        LOADING_ELEM.className = 'alert alert-warning';
+        LOADING_ELEM.innerText = 'Cámara lista. ¡Sigue la secuencia de movimientos!';
+    }
+}
+
+/**
+ * Configurar y Abrir la Cámara
+ */
+async function setupCamera() {
+    video = document.getElementById('video');
+
+    const constraints = {
+        'audio': false,
+        'video': {
+            facingMode: 'user',
+            width: VIDEO_WIDTH,
+            height: VIDEO_HEIGHT
+        }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+
+    return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+            resolve(video);
+        };
+    });
+}
+
+/**
+ * Bucle Principal de Detección
+ */
+async function poseEstimationLoop() {
+    if (!detector || !video.readyState) {
+        requestAnimationFrame(poseEstimationLoop);
+        return;
+    }
+
+    // 1. Estimar pose
+    const poses = await detector.estimatePoses(video);
+    const mainPose = (poses && poses.length > 0) ? poses[0] : null;
+
+    // 2. Limpiar canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 3. Dibujar y Verificar Objetivos
+    // ★ NUEVO: Esta función ahora nos devuelve si TODOS los objetivos se cumplieron
+    const allTargetsHit = drawAndCheckTargets(mainPose, ctx);
+
+    // ★ NUEVO: Lógica de Transición de Pasos
+    if (allTargetsHit) {
+        poseHoldCounter++; // Aumentamos el contador si mantiene la pose
+        
+        // Dibujar barra de progreso o indicador visual
+        drawProgress(ctx, poseHoldCounter, FRAMES_TO_HOLD);
+
+        // Si mantuvo la pose el tiempo suficiente...
+        if (poseHoldCounter >= FRAMES_TO_HOLD) {
+            advanceToNextStep();
+        }
+    } else {
+        poseHoldCounter = 0; // Si falla, reiniciamos el contador
+    }
+
+    // 4. Dibujar Esqueleto del usuario
+    if (mainPose) {
+        drawResult(mainPose, ctx);
+    }
+
+    // 5. Repetir
+    requestAnimationFrame(poseEstimationLoop);
+}
+
+/**
+ * ★ NUEVO: Función para avanzar al siguiente paso
+ */
+function advanceToNextStep() {
+    poseHoldCounter = 0; // Reiniciar contador
+    currentStepIndex++;  // Siguiente paso
+
+    // Verificar si terminamos la rutina
+    if (currentStepIndex >= ROUTINE_STEPS.length) {
+        currentStepIndex = 0; // Volver al inicio (bucle)
+        // O podrías mostrar un mensaje de "¡Terminado!" aquí
+    }
+
+    // Cargar las nuevas coordenadas (Usamos copia profunda para no modificar el original)
+    currentTargets = JSON.parse(JSON.stringify(ROUTINE_STEPS[currentStepIndex]));
+    
+    // Sonido opcional o efecto visual aquí
+    console.log("¡Cambio de paso! Ahora paso: " + currentStepIndex);
+}
+
+/**
+ * Función para Dibujar y Verificar Objetivos
+ * Retorna TRUE si todos los objetivos están siendo tocados
+ */
+function drawAndCheckTargets(pose, ctx) {
+    const HIT_THRESHOLD = 20; 
+    let hitCount = 0;
+
+    // Iteramos sobre los objetivos ACTUALES (currentTargets)
+    currentTargets.forEach(target => {
+        let isHit = false;
+
+        if (pose) {
+            const userPart = pose.keypoints[target.keypointIndex];
+            if (userPart && userPart.score > 0.3) {
+                const dist = Math.hypot(userPart.x - target.x, userPart.y - target.y);
+                if (dist < HIT_THRESHOLD) {
+                    isHit = true;
+                }
+            }
+        }
+        
+        target.hit = isHit;
+        if (isHit) hitCount++;
+
+        // --- Dibujo Visual ---
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, 20, 0, 2 * Math.PI);
+        
+        if (isHit) {
+            ctx.fillStyle = 'rgba(50, 255, 50, 0.5)'; // Verde
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+        } else {
+            ctx.fillStyle = 'rgba(0, 150, 255, 0.2)'; // Azul
+            ctx.strokeStyle = 'cyan';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 5]); 
+        }
+        
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Texto
+        ctx.save();
+        ctx.translate(target.x, target.y);
+        ctx.scale(-1, 1);
+        ctx.fillStyle = 'white';
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(target.label, 0, 5);
+        ctx.restore();
+    });
+
+    // Retornar true solo si TODOS los objetivos fueron tocados
+    return hitCount === currentTargets.length;
+}
+
+/**
+ * ★ NUEVO: Dibuja un indicador de progreso cuando se completa la pose
+ */
+function drawProgress(ctx, current, max) {
+    const progress = Math.min(current / max, 1);
+    ctx.save();
+    ctx.scale(-1, 1); // Invertir porque todo el canvas está invertido
+    
+    // Dibujar en el centro superior
+    const barWidth = 200;
+    const x = -(VIDEO_WIDTH / 2) - (barWidth / 2); // Centrado ajustado al espejo
+    const y = 50;
+
+    // Fondo barra
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillRect(x, y, barWidth, 20);
+
+    // Relleno barra
+    ctx.fillStyle = '#00FF00';
+    ctx.fillRect(x, y, barWidth * progress, 20);
+    
+    ctx.fillStyle = 'white';
+    ctx.font = "bold 20px Arial";
+    ctx.fillText("¡MANTÉN!", x + 60, y - 10);
+    
+    ctx.restore();
+}
+
+/**
+ * Función para dibujar el Esqueleto
+ */
+function drawResult(pose, ctx) {
+    const minScore = 0.3; 
+    
+    const ADJACENCY_LIST = [
+        [0, 1], [0, 2], [1, 3], [2, 4], 
+        [0, 5], [0, 6], [5, 7], [7, 9], 
+        [6, 8], [8, 10], 
+        [5, 11], [6, 12], [11, 13], [13, 15], 
+        [12, 14], [14, 16]
+    ];
+
+    ctx.strokeStyle = 'lime';
+    ctx.lineWidth = 3;
+    ADJACENCY_LIST.forEach(([i, j]) => {
+        const kp1 = pose.keypoints[i];
+        const kp2 = pose.keypoints[j];
+
+        if (kp1.score > minScore && kp2.score > minScore) {
+            ctx.beginPath();
+            ctx.moveTo(kp1.x, kp1.y);
+            ctx.lineTo(kp2.x, kp2.y);
+            ctx.stroke();
+        }
+    });
+    
+    pose.keypoints.forEach((keypoint, i) => {
+        if (keypoint.score > minScore) { 
+            const { x, y } = keypoint;
+            ctx.beginPath();
+            // Solo dibujamos círculos grandes en rodillas y tobillos si NO están en los objetivos
+            // para no saturar visualmente, o los dejamos como guía:
+            if (i >= 13 && i <= 16) {
+                ctx.arc(x, y, 10, 0, 2 * Math.PI); 
+                ctx.fillStyle = '#FFD700'; 
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            } else {
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);  
+                ctx.fillStyle = 'red';
+            }
+            ctx.fill();
+        }
+    });
+}
+
+/**
+ * Inicialización
+ */
+async function init() {
+    try {
+        await setupCamera();
+        video.play();
+
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        canvas.width = VIDEO_WIDTH;
+        canvas.height = VIDEO_HEIGHT;
+
+        await setupDetector();
+
+        LOADING_ELEM.style.display = 'none';
+        poseEstimationLoop();
+
+    } catch (error) {
+        console.error("Error:", error);
+        if(LOADING_ELEM) {
+            LOADING_ELEM.className = 'alert alert-danger';
+            LOADING_ELEM.innerText = 'Error: ' + error.message;
+        }
+    }
+}
+
+init();
+    </script>
+
+{% endblock %}
