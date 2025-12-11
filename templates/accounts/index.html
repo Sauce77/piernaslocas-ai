@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/plai-palette.css' %}">
+{% endblock %}
+
+{% block title %}piernaslocas{% endblock %}
+
+{% block content %}
+
+    <div class="d-flex flex-column text-center">
+
+        <img src="{% static 'img/logo.png' %}" class="mx-auto" style="width: 25%; height: 25%;" alt="piernaslocas_logo">
+
+        <h1 style="font-size: 5rem; font-weight: bold;">piernaslocas</h1>
+        <h2 class="fs-4">Terapia Fisica Virtual</h2>    
+
+        <hr>
+        {% if user.is_authenticated %}
+            <p class="fs-2"> Bienvenido {{ user.last_name }}, {{ user.first_name }}!</p>
+        {% else %}
+            <div class="d-flex justify-content-center gap-5 mt-2">
+                <a href="{% url 'accounts:login' %}" class="btn boton-secundario">Iniciar Sesion</a>
+                <a href="{% url 'accounts:signup' %}" class="btn boton-primario">Registrarse</a>
+            </div>
+        {% endif %}
+    </div>
+    
+
+{% endblock %}

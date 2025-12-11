@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/plai-palette.css' %}">
+{% endblock%}
+
+{% block title %}Perfil{% endblock %}
+
+{% block content %}
+
+<h1>
+    @{{ usuario.username }}
+
+    {% if usuario.contacto.perfil == "T" %}
+        <span class="badge fs-6 text-bg-primary">
+            {{ usuario.contacto.get_perfil_display }}
+        </span>
+    {% elif usuario.contacto.perfil == "U" %}
+        <span class="badge fs-6 text-bg-secondary">
+            {{ usuario.contacto.get_perfil_display }}
+        </span>
+    {% endif %}
+</h1>
+<h4 class="my-3"><b class="fs-6">Nombre:</b> {{ usuario.last_name }}, {{ usuario.first_name }}</h4>
+
+<div class="card mb-3">
+    <div class="row g-0">
+        
+        <div class="col-md-8">
+            <div class="card-body">
+                <h5 class="card-title text-center">Informacion de Contacto</h5>
+                <p class="card-text">
+                    <b>Correo:</b> {{ usuario.email }}
+                </p>
+
+                {% if usuario.contacto %}
+                    {% if usuario.contacto.perfil == "T" %}
+                        <p class="card-text">
+                            <b>Cedula Profesional:</b> 
+                            {% if usuario.contacto.cedula_profesional %}
+                                {{ usuario.contacto.cedula_profesional }}
+                            {% else %}
+                                <span class="text-danger">Sin Cedula Profesional registrada</span>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+
+                    {% if user.is_authenticated and usuario.username == user.username %}
+                        <hr>
+
+                        <p><b>Sexo: </b>{{ usuario.contacto.get_sexo_display }}</p>
+                        <p><b>Fecha de Nacimiento: </b>{{ usuario.contacto.fecha_nacimiento }} [<i>{{ edad }} año(s)</i>]</p>
+                        <p class="card-text"><b>Contacto de emergencia:</b> {{ usuario.contacto.contacto_emergencia }}</p>
+
+                        <a class="btn btn-sm fs-6 px-3 boton-secundario" href="{% url 'accounts:edit' %}">Editar</a>
+
+                    {% endif %}
+                
+                {% endif %}
+
+                <hr>
+                <p class="card-text"><small class="text-body-secondary">Ultima conexion: {{ usuario.last_login }}</small></p>
+            </div>
+
+        </div>
+
+
+        <div class="col-md-4 p-3">
+            <img src="{% static 'img/accounts/profile/example.gif' %}" alt="profile_photo" style="width: 100%; height: 23rem;">
+        </div>
+    </div>
+</div>
+
+{% endblock %}
